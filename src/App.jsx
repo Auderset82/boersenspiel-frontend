@@ -135,6 +135,11 @@ function App() {
     .sort((a, b) => b.totalPerformanceForGame - a.totalPerformanceForGame)
     .map((playerData, index) => ({ ...playerData, rank: index + 1 })); // 🏆 Rang hinzufügen
 
+  // 🔥 HIER handlePlayerClick DEFINIEREN
+  const handlePlayerClick = (player) => {
+    setSelectedPlayer((prevSelected) => (prevSelected === player ? null : player));
+  };
+
   return (
     <div className="App">
       <h1>📈 Börsenspiel Rangliste</h1>
