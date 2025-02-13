@@ -1,0 +1,181 @@
+/* Allgemeine Stile */
+.App {
+  text-align: center;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+button {
+  padding: 10px 15px;
+  margin: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: white;
+  transition: background 0.3s ease-in-out;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* Tabellen für Ranking und Spieler */
+.table-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.ranking-table,
+.players-table {
+  width: 100%;
+  min-width: 600px;
+  margin: 20px auto;
+  border-collapse: collapse;
+}
+
+.ranking-table th,
+.ranking-table td,
+.players-table th,
+.players-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+.ranking-table th,
+.players-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+/* Spieler-Reihe klickbar machen */
+.players-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.players-table tbody tr:hover {
+  background-color: #e3f2fd;
+}
+
+/* Stock-Charts Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  justify-content: center;
+  margin: 20px auto;
+  padding: 20px;
+}
+
+/* Einzelne Chart-Container */
+.chart-container {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 10px;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Long & Short Chart Styles */
+.chart-long {
+  border-color: green;
+}
+
+.chart-short {
+  border-color: red;
+}
+
+/* Tabellen-Styling für Spieler-Übersicht */
+.players-table {
+  width: 100%;
+  min-width: 600px;
+  margin: 20px auto;
+  border-collapse: collapse;
+}
+
+.players-table th,
+.players-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+.players-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 1024px) {
+  .charts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+
+  .ranking-table,
+  .players-table {
+    width: 100%;
+  }
+
+  .charts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+
+  .players-table th,
+  .players-table td {
+    padding: 5px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  button {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.chart-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.chart-box {
+  width: 320px;
+  height: 240px;
+  border: 1px solid #ddd;
+  padding: 10px;
+  background-color: #f9f9f9;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .chart-row {
+    flex-direction: column;
+  }
+
+  .chart-box {
+    width: 100%;
+  }
+}
