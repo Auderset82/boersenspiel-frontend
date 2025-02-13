@@ -135,7 +135,7 @@ function App() {
       <h1>📈 Börsenspiel Rangliste</h1>
       <button onClick={() => { fetchPlayers(); fetchHistory(); }}>🔄 Aktualisieren</button>
 
-      {isUpdating && <p className="update-info">🔄 Daten werden im Hintergrund aktualisiert...</p>} {/* 📌 Neuer Hinweis */}
+      {isUpdating && <p className="update-info">🔄 Daten werden im Hintergrund aktualisiert...</p>}
 
       {loading ? (
         <p>Lädt...</p>
@@ -218,8 +218,7 @@ function App() {
         </>
       )}
     </div>
-  )
+  );
 
-
-
+  // ❗ Sicherstellen, dass `export default App;` **außerhalb** des `return`-Blocks steht!
   export default App;
