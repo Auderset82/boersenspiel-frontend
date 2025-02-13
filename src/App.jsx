@@ -151,12 +151,15 @@ function App() {
             </thead>
 
             <tbody>
-              {rankingData.map(({ player, stocks, totalPerformanceForGame }, index) => {
+              {rankingData.map(({ rank, player, stocks, totalPerformanceForGame }, index) => {
                 const rowColor = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? '#cd7f32' : 'transparent';
                 return stocks.map((stock, stockIndex) => (
                   <tr key={`${player}-${stock.ticker}`} style={{ backgroundColor: rowColor }} onClick={() => handlePlayerClick(player)}>
                     {stockIndex === 0 && (
-                      <td rowSpan={stocks.length}><strong>{player}</strong></td>
+                      <>
+                        <td rowSpan={stocks.length}><strong>{rank}</strong></td>  {/* 🏆 Rang korrekt eingefügt */}
+                        <td rowSpan={stocks.length}><strong>{player}</strong></td>
+                      </>
                     )}
                     <td>{stock.ticker}</td>
                     <td>{stock.direction}</td>
@@ -175,6 +178,7 @@ function App() {
                 ));
               })}
             </tbody>
+
           </table>
 
           {selectedPlayer && (
