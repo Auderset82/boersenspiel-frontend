@@ -3,6 +3,8 @@ import './App.css';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
 
+const API_URL = "https://boersenspiel-backend.onrender.com"; // ✅ Hier ist die API-URL definiert
+
 function App() {
   const [players, setPlayers] = useState({});
   const [history, setHistory] = useState({});
@@ -14,7 +16,7 @@ function App() {
   const fetchPlayers = useCallback(async () => {
     try {
       console.log("📡 Fetching players data...");
-      const response = await fetch('http://127.0.0.1:8000/players');
+      const response = await fetch(`${API_URL}/players`);
       const data = await response.json();
       console.log("👤 API Player-Daten:", data);
       setPlayers(data.players);
@@ -26,7 +28,7 @@ function App() {
   const fetchHistory = useCallback(async () => {
     try {
       console.log("📡 Fetching history data...");
-      const response = await fetch('http://127.0.0.1:8000/history');
+      const response = await fetch(`${API_URL}/history`);
       const data = await response.json();
       console.log("📈 API History-Daten:", data);
       setHistory(data.history);
