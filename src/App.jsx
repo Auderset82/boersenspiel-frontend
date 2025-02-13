@@ -77,45 +77,49 @@ function App() {
     return { performanceStock, performanceInCHF, performanceForGame };
   };
 
-  const rankingData = Object.keys(players).map((player) => {
-    let stocks = players[player];
-    if (!stocks || stocks.length === 0) return null;
+  const rankingData = Object.keys(players)
+    .map((player, index) => {
+      let stocks = players[player];
+      if (!stocks || stocks.length === 0) return null;
 
-    stocks = stocks.sort((a, b) => (a.direction === "long" ? -1 : 1));
+      stocks = stocks.sort((a, b) => (a.direction === "long" ? -1 : 1));
 
-    let totalPerformanceForGame = 0;
+      let totalPerformanceForGame = 0;
 
-    const stockData = stocks.map((stock) => {
-      const historyData = history[stock.ticker] || [];
-      const lastEntry = historyData.length ? historyData[historyData.length - 1] : null;
-      const eoyEntry = historyData.find(entry => entry.Date === '2024-12-30') || lastEntry;
+      const stockData = stocks.map((stock) => {
+        const historyData = history[stock.ticker] || [];
+        const lastEntry = historyData.length ? historyData[historyData.length - 1] : null;
+        const eoyEntry = historyData.find(entry => entry.Date === '2024-12-30') || lastEntry;
 
-      const startExchangeRate = getCurrencyRateSOY(historyData, stock.currency);
-      const currentExchangeRate = lastEntry ? (1 / lastEntry.exchange_rate_current).toFixed(4) : "N/A";
+        const startExchangeRate = getCurrencyRateSOY(historyData, stock.currency);
+        const currentExchangeRate = lastEntry ? (1 / lastEntry.exchange_rate_current).toFixed(4) : "N/A";
 
-      const performance = calculatePerformance(
-        eoyEntry?.close_price, lastEntry?.close_price,
-        stock.direction, startExchangeRate, currentExchangeRate
-      );
+        const performance = calculatePerformance(
+          eoyEntry?.close_price, lastEntry?.close_price,
+          stock.direction, startExchangeRate, currentExchangeRate
+        );
 
-      totalPerformanceForGame += performance.performanceForGame * 0.5;
+        totalPerformanceForGame += performance.performanceForGame * 0.5;
 
-      return {
-        ...stock,
-        currency: lastEntry?.currency || 'N/A',
-        eoyPrice: eoyEntry?.close_price?.toFixed(2) || 'N/A',
-        currentPrice: lastEntry?.close_price?.toFixed(2) || 'N/A',
-        performanceStock: performance.performanceStock.toFixed(2),
-        performanceInCHF: performance.performanceInCHF.toFixed(2),
-        performanceForGame: performance.performanceForGame.toFixed(2),
-        startExchangeRate: startExchangeRate,
-        currentExchangeRate: currentExchangeRate,
-        priceHistory: historyData.filter(entry => entry.Date >= '2024-12-30') // Nur relevante Daten
-      };
-    });
+        return {
+          ...stock,
+          currency: lastEntry?.currency || 'N/A',
+          eoyPrice: eoyEntry?.close_price?.toFixed(2) || 'N/A',
+          currentPrice: lastEntry?.close_price?.toFixed(2) || 'N/A',
+          performanceStock: performance.performanceStock.toFixed(2),
+          performanceInCHF: performance.performanceInCHF.toFixed(2),
+          performanceForGame: performance.performanceForGame.toFixed(2),
+          startExchangeRate: startExchangeRate,
+          currentExchangeRate: currentExchangeRate,
+          priceHistory: historyData.filter(entry => entry.Date >= '2024-12-30') // Nur relevante Daten
+        };
+      });
 
-    return { player, stocks: stockData, totalPerformanceForGame: totalPerformanceForGame.toFixed(2) };
-  }).filter(Boolean).sort((a, b) => b.totalPerformanceForGame - a.totalPerformanceForGame);
+      return { player, stocks: stockData, totalPerformanceForGame: totalPerformanceForGame.toFixed(2) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.totalPerformanceForGame - a.totalPerformanceForGame)
+    .map((playerData, index) => ({ ...playerData, rank: index + 1 })); // 🏆 Rang hinzufügen
 
   return (
     <div className="App">
@@ -130,6 +134,7 @@ function App() {
           <table className="players-table">
             <thead>
               <tr>
+                <th>#</th> {/* 🏆 Neue Spalte für Rang */}
                 <th>Player</th>
                 <th>Aktien</th>
                 <th>Direction</th>
@@ -144,6 +149,7 @@ function App() {
                 <th>Total Performance für Game</th>
               </tr>
             </thead>
+
             <tbody>
               {rankingData.map(({ player, stocks, totalPerformanceForGame }, index) => {
                 const rowColor = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? '#cd7f32' : 'transparent';
