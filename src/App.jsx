@@ -6,47 +6,61 @@ import 'chart.js/auto';
 const API_URL = "https://boersenspiel-backend.onrender.com"; // ✅ Hier ist die API-URL definiert
 
 function App() {
-  const [players, setPlayers] = useState({});
-  const [history, setHistory] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [selectedPlayer, setSelectedPlayer] = useState(null); // Speichert den ausgewählten Spieler
+  const [players, setPlayers] = useState(() => JSON.parse(localStorage.getItem("players")) || {});
+  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem("history")) || {});
+  const [loading, setLoading] = useState(() => !localStorage.getItem("players")); // ✅ Lädt nur, wenn keine alten Daten existieren
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   console.log("🚀 App gestartet");
 
   const fetchPlayers = useCallback(async () => {
     try {
+      setIsUpdating(true);
       console.log("📡 Fetching players data...");
       const response = await fetch(`${API_URL}/players`);
       const data = await response.json();
       console.log("👤 API Player-Daten:", data);
       setPlayers(data.players);
+      localStorage.setItem("players", JSON.stringify(data.players));
+      setLoading(false);  // ✅ Deaktiviere `loading`, sobald Daten geladen wurden
     } catch (error) {
       console.error('❌ Fehler beim Abrufen der Spieler:', error);
+    } finally {
+      setIsUpdating(false);
     }
   }, []);
 
+
   const fetchHistory = useCallback(async () => {
     try {
+      setIsUpdating(true);
       console.log("📡 Fetching history data...");
       const response = await fetch(`${API_URL}/history`);
       const data = await response.json();
       console.log("📈 API History-Daten:", data);
       setHistory(data.history);
-      setLoading(false);
+      localStorage.setItem("history", JSON.stringify(data.history));
+      setLoading(false);  // ✅ Deaktiviere `loading`
     } catch (error) {
       console.error('❌ Fehler beim Abrufen der Historie:', error);
-      setLoading(false);
+    } finally {
+      setIsUpdating(false);
     }
   }, []);
 
+
   useEffect(() => {
+    const savedPlayers = JSON.parse(localStorage.getItem("players"));
+    const savedHistory = JSON.parse(localStorage.getItem("history"));
+
+    if (savedPlayers) setPlayers(savedPlayers);
+    if (savedHistory) setHistory(savedHistory);
+
     fetchPlayers();
     fetchHistory();
   }, [fetchPlayers, fetchHistory]);
 
-  const handlePlayerClick = (player) => {
-    setSelectedPlayer(player === selectedPlayer ? null : player);
-  };
 
   const getCurrencyRateSOY = (historyData, currency) => {
     if (currency === "CHF") return "1.0000";
@@ -125,6 +139,9 @@ function App() {
     <div className="App">
       <h1>📈 Börsenspiel Rangliste</h1>
       <button onClick={() => { fetchPlayers(); fetchHistory(); }}>🔄 Aktualisieren</button>
+
+      {isUpdating && <p className="update-info">🔄 Daten werden im Hintergrund aktualisiert...</p>}
+
 
       {loading ? (
         <p>Lädt...</p>
