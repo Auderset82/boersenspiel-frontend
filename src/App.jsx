@@ -3,8 +3,6 @@ import './App.css';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
 
-
-
 const API_URL = "https://boersenspiel-backend.onrender.com"; // ✅ Hier ist die API-URL definiert
 
 function App() {
@@ -12,12 +10,11 @@ function App() {
   const [history, setHistory] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState(null); // Speichert den ausgewählten Spieler
-  const [isUpdating, setIsUpdating] = useState(false);
+
   console.log("🚀 App gestartet");
 
   const fetchPlayers = useCallback(async () => {
     try {
-      setIsUpdating(true); // 📌 Markiere, dass die Daten aktualisiert werden
       console.log("📡 Fetching players data...");
       const response = await fetch(`${API_URL}/players`);
       const data = await response.json();
@@ -25,14 +22,11 @@ function App() {
       setPlayers(data.players);
     } catch (error) {
       console.error('❌ Fehler beim Abrufen der Spieler:', error);
-    } finally {
-      setIsUpdating(false); // 📌 Markiere, dass die Aktualisierung abgeschlossen ist
     }
-  }, [setPlayers]);
+  }, []);
 
   const fetchHistory = useCallback(async () => {
     try {
-      setIsUpdating(true);
       console.log("📡 Fetching history data...");
       const response = await fetch(`${API_URL}/history`);
       const data = await response.json();
@@ -42,11 +36,8 @@ function App() {
     } catch (error) {
       console.error('❌ Fehler beim Abrufen der Historie:', error);
       setLoading(false);
-    } finally {
-      setIsUpdating(false);
     }
-  }, [setHistory]);
-
+  }, []);
 
   useEffect(() => {
     fetchPlayers();
@@ -135,8 +126,6 @@ function App() {
       <h1>📈 Börsenspiel Rangliste</h1>
       <button onClick={() => { fetchPlayers(); fetchHistory(); }}>🔄 Aktualisieren</button>
 
-      {isUpdating && <p className="update-info">🔄 Daten werden im Hintergrund aktualisiert...</p>}
-
       {loading ? (
         <p>Lädt...</p>
       ) : (
@@ -145,7 +134,7 @@ function App() {
           <table className="players-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th>#</th> {/* 🏆 Neue Spalte für Rang */}
                 <th>Player</th>
                 <th>Aktien</th>
                 <th>Direction</th>
@@ -168,7 +157,7 @@ function App() {
                   <tr key={`${player}-${stock.ticker}`} style={{ backgroundColor: rowColor }} onClick={() => handlePlayerClick(player)}>
                     {stockIndex === 0 && (
                       <>
-                        <td rowSpan={stocks.length}><strong>{rank}</strong></td>
+                        <td rowSpan={stocks.length}><strong>{rank}</strong></td>  {/* 🏆 Rang korrekt eingefügt */}
                         <td rowSpan={stocks.length}><strong>{player}</strong></td>
                       </>
                     )}
@@ -189,6 +178,7 @@ function App() {
                 ));
               })}
             </tbody>
+
           </table>
 
           {selectedPlayer && (
@@ -215,10 +205,13 @@ function App() {
               </div>
             </div>
           )}
+
+
+
         </>
       )}
     </div>
   );
+}
 
-  // ❗ Sicherstellen, dass `export default App;` **außerhalb** des `return`-Blocks steht!
-  export default App;
+export default App;
