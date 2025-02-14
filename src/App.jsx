@@ -72,7 +72,7 @@ function App() {
         const history = stockData.history || {};
         const currentPriceObj = stockData.current_price || {};
 
-        const latestDate = Object.keys(currentPriceObj).pop();
+        const latestDate = currentPriceObj ? Object.keys(currentPriceObj).pop() : null;
         const latestPrice = latestDate ? currentPriceObj[latestDate] : null;
 
         const startPrice = Object.values(history)[0];
@@ -122,7 +122,7 @@ function App() {
           performance: `${performance}%`,
           performanceInCHF: `${performanceInCHF}%`,
           performanceForGame: `${performanceForGame}%`,
-          priceHistory, // **Updated with current price**
+          priceHistory,
         };
       })
       .sort((a, b) => (a.direction === "long" ? -1 : 1));
@@ -168,10 +168,13 @@ function App() {
                 <th>Startpreis</th>
                 <th>Aktueller Preis</th>
                 <th>Performance</th>
+                <th>Performance in CHF</th>
+                <th>Performance für Game</th>
+                <th>Gesamtperformance für Game</th>
               </tr>
             </thead>
             <tbody>
-              {rankingData.map(({ rank, player, stocks }) =>
+              {rankingData.map(({ rank, player, stocks, totalPerformanceForGame }) =>
                 stocks.map((stock, stockIndex) => (
                   <tr key={`${player}-${stock.ticker}`} onClick={() => handlePlayerClick(player)}>
                     {stockIndex === 0 && (
@@ -186,6 +189,9 @@ function App() {
                     <td>{stock.startPrice}</td>
                     <td>{stock.currentPrice}</td>
                     <td>{stock.performance}</td>
+                    <td>{stock.performanceInCHF}</td>
+                    <td>{stock.performanceForGame}</td>
+                    {stockIndex === 0 && <td rowSpan={stocks.length}>{totalPerformanceForGame.toFixed(2)}%</td>}
                   </tr>
                 ))
               )}
@@ -198,17 +204,15 @@ function App() {
               <div className="chart-row">
                 {rankingData.find(p => p.player === selectedPlayer).stocks.map(stock => (
                   <div className="chart-container" key={stock.ticker}>
-                    <Line
-                      data={{
-                        labels: stock.priceHistory.map(e => e.Date),
-                        datasets: [{
-                          label: stock.ticker,
-                          data: stock.priceHistory.map(e => e.close_price),
-                          borderColor: stock.direction === "long" ? "green" : "red",
-                          fill: false
-                        }]
-                      }}
-                    />
+                    <Line data={{
+                      labels: stock.priceHistory.map(e => e.Date),
+                      datasets: [{
+                        label: stock.ticker,
+                        data: stock.priceHistory.map(e => e.close_price),
+                        borderColor: stock.direction === "long" ? "green" : "red",
+                        fill: false
+                      }]
+                    }} />
                   </div>
                 ))}
               </div>
