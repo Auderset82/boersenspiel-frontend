@@ -1,19 +1,39 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import './App.css';
-import { Line } from 'react-chartjs-2';
-import 'chart.js/auto';
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import "./App.css";
+import { Line } from "react-chartjs-2";
+import "chart.js/auto";
 
-const API_URL = "https://boersenspiel-backend.onrender.com"; // ✅ Hier ist die API-URL definiert
+const API_URL = "https://boersenspiel-backend.onrender.com"; // ✅ API URL
 
 function App() {
   const [players, setPlayers] = useState(() => JSON.parse(localStorage.getItem("players")) || {});
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem("history")) || {});
-  const [loading, setLoading] = useState(() => !localStorage.getItem("players")); // ✅ Lädt nur, wenn keine alten Daten existieren
+  const [latestRates, setLatestRates] = useState({ USD: 1.1, EUR: 1.0 }); // ✅ Store latest exchange rates
+  const [loading, setLoading] = useState(() => !localStorage.getItem("players"));
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const lastUpdated = useRef(null); // ✅ Track last API update time without re-rendering
 
   console.log("🚀 App gestartet");
 
+  // ✅ Fetch Latest Exchange Rates from API (Avoids redundant calls)
+  const fetchLatestExchangeRates = useCallback(async () => {
+    const now = Date.now();
+    if (lastUpdated.current && now - lastUpdated.current < 3600000) return; // Skip if updated <1h ago
+
+    try {
+      console.log("📡 Fetching latest exchange rates...");
+      const response = await fetch(`${API_URL}/latest`);
+      const data = await response.json();
+      console.log("💱 API Latest Exchange Rates:", data);
+      setLatestRates(data || { USD: 1.1, EUR: 1.0 }); // ✅ Ensure default fallback values
+      lastUpdated.current = now; // ✅ Track last update time
+    } catch (error) {
+      console.error("❌ Fehler beim Abrufen der neuesten Wechselkurse:", error);
+    }
+  }, []);
+
+  // ✅ Fetch Players Data
   const fetchPlayers = useCallback(async () => {
     try {
       setIsUpdating(true);
@@ -23,15 +43,15 @@ function App() {
       console.log("👤 API Player-Daten:", data);
       setPlayers(data.players);
       localStorage.setItem("players", JSON.stringify(data.players));
-      setLoading(false);  // ✅ Deaktiviere `loading`, sobald Daten geladen wurden
+      setLoading(false);
     } catch (error) {
-      console.error('❌ Fehler beim Abrufen der Spieler:', error);
+      console.error("❌ Fehler beim Abrufen der Spieler:", error);
     } finally {
       setIsUpdating(false);
     }
   }, []);
 
-
+  // ✅ Fetch Historical Data
   const fetchHistory = useCallback(async () => {
     try {
       setIsUpdating(true);
@@ -41,37 +61,41 @@ function App() {
       console.log("📈 API History-Daten:", data);
       setHistory(data.history);
       localStorage.setItem("history", JSON.stringify(data.history));
-      setLoading(false);  // ✅ Deaktiviere `loading`
+      setLoading(false);
     } catch (error) {
-      console.error('❌ Fehler beim Abrufen der Historie:', error);
+      console.error("❌ Fehler beim Abrufen der Historie:", error);
     } finally {
       setIsUpdating(false);
     }
   }, []);
 
-
+  // ✅ Fetch all data when component mounts
   useEffect(() => {
-    const savedPlayers = JSON.parse(localStorage.getItem("players"));
-    const savedHistory = JSON.parse(localStorage.getItem("history"));
-
-    if (savedPlayers) setPlayers(savedPlayers);
-    if (savedHistory) setHistory(savedHistory);
-
     fetchPlayers();
     fetchHistory();
-  }, [fetchPlayers, fetchHistory]);
+    fetchLatestExchangeRates(); // ✅ Fetch latest exchange rates
+  }, [fetchLatestExchangeRates]);
 
+  // ✅ Auto-update exchange rates every hour
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchLatestExchangeRates();
+    }, 3600000); // Update every hour
 
+    return () => clearInterval(interval);
+  }, [fetchLatestExchangeRates]);
+
+  // ✅ Get Currency Rate at Start of Year (SOY)
   const getCurrencyRateSOY = (historyData, currency) => {
     if (currency === "CHF") return "1.0000";
     if (currency === "EUR") return (1 / 1.06435599).toFixed(4);
 
     let soyRate = null;
-    const eoyEntry = historyData.find(entry => entry.Date === '2024-12-30');
+    const eoyEntry = historyData.find((entry) => entry.Date === "2024-12-30");
     if (eoyEntry) {
       soyRate = eoyEntry.exchange_rate_start;
     } else {
-      const firstEntry2025 = historyData.find(entry => entry.Date.startsWith('2025'));
+      const firstEntry2025 = historyData.find((entry) => entry.Date.startsWith("2025"));
       if (firstEntry2025) {
         soyRate = firstEntry2025.exchange_rate_start;
       }
@@ -80,19 +104,22 @@ function App() {
     return soyRate ? (1 / soyRate).toFixed(4) : "N/A";
   };
 
+  // ✅ Calculate Performance
   const calculatePerformance = (eoyPrice, currentPrice, direction, startExchangeRate, currentExchangeRate) => {
-    if (!eoyPrice || !currentPrice || !startExchangeRate || !currentExchangeRate) return { performanceStock: 0, performanceInCHF: 0, performanceForGame: 0 };
+    if (!eoyPrice || !currentPrice || !startExchangeRate || !currentExchangeRate)
+      return { performanceStock: 0, performanceInCHF: 0, performanceForGame: 0 };
 
     const performanceStock = ((currentPrice - eoyPrice) / eoyPrice) * 100;
     const currencyPerformance = ((currentExchangeRate / startExchangeRate) - 1) * 100;
     const performanceInCHF = performanceStock + currencyPerformance;
-    const performanceForGame = direction === 'long' ? performanceInCHF : -performanceInCHF;
+    const performanceForGame = direction === "long" ? performanceInCHF : -performanceInCHF;
 
     return { performanceStock, performanceInCHF, performanceForGame };
   };
 
+  // ✅ Process Player Rankings
   const rankingData = Object.keys(players)
-    .map((player, index) => {
+    .map((player) => {
       let stocks = players[player];
       if (!stocks || stocks.length === 0) return null;
 
@@ -103,29 +130,26 @@ function App() {
       const stockData = stocks.map((stock) => {
         const historyData = history[stock.ticker] || [];
         const lastEntry = historyData.length ? historyData[historyData.length - 1] : null;
-        const eoyEntry = historyData.find(entry => entry.Date === '2024-12-30') || lastEntry;
+        const eoyEntry = historyData.find((entry) => entry.Date === "2024-12-30") || lastEntry;
 
         const startExchangeRate = getCurrencyRateSOY(historyData, stock.currency);
-        const currentExchangeRate = lastEntry ? (1 / lastEntry.exchange_rate_current).toFixed(4) : "N/A";
+        const exchangeRate = latestRates[stock.currency] ?? 1.0; // ✅ Fallback to 1.0 if undefined
+        const currentExchangeRate = (1 / exchangeRate).toFixed(4);
 
-        const performance = calculatePerformance(
-          eoyEntry?.close_price, lastEntry?.close_price,
-          stock.direction, startExchangeRate, currentExchangeRate
-        );
+        const performance = calculatePerformance(eoyEntry?.close_price, lastEntry?.close_price, stock.direction, startExchangeRate, currentExchangeRate);
 
         totalPerformanceForGame += performance.performanceForGame * 0.5;
 
         return {
           ...stock,
-          currency: lastEntry?.currency || 'N/A',
-          eoyPrice: eoyEntry?.close_price?.toFixed(2) || 'N/A',
-          currentPrice: lastEntry?.close_price?.toFixed(2) || 'N/A',
+          currency: lastEntry?.currency || "N/A",
+          eoyPrice: eoyEntry?.close_price?.toFixed(2) || "N/A",
+          currentPrice: lastEntry?.close_price?.toFixed(2) || "N/A",
           performanceStock: performance.performanceStock.toFixed(2),
           performanceInCHF: performance.performanceInCHF.toFixed(2),
           performanceForGame: performance.performanceForGame.toFixed(2),
-          startExchangeRate: startExchangeRate,
-          currentExchangeRate: currentExchangeRate,
-          priceHistory: historyData.filter(entry => entry.Date >= '2024-12-30') // Nur relevante Daten
+          startExchangeRate,
+          currentExchangeRate,
         };
       });
 
@@ -133,9 +157,9 @@ function App() {
     })
     .filter(Boolean)
     .sort((a, b) => b.totalPerformanceForGame - a.totalPerformanceForGame)
-    .map((playerData, index) => ({ ...playerData, rank: index + 1 })); // 🏆 Rang hinzufügen
+    .map((playerData, index) => ({ ...playerData, rank: index + 1 }));
 
-  // 🔥 HIER handlePlayerClick DEFINIEREN
+  // ✅ Define handlePlayerClick before returning JSX
   const handlePlayerClick = (player) => {
     setSelectedPlayer((prevSelected) => (prevSelected === player ? null : player));
   };
@@ -227,9 +251,6 @@ function App() {
               </div>
             </div>
           )}
-
-
-
         </>
       )}
     </div>
