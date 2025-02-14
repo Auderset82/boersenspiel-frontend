@@ -1,152 +1,95 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import "./App.css";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 
-const API_URL = "https://boersenspiel-backend.onrender.com"; // ✅ API URL
+const API_URL = "https://boersenspiel-backend.onrender.com";
 
 function App() {
-  const [players, setPlayers] = useState(() => JSON.parse(localStorage.getItem("players")) || {});
-  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem("history")) || {});
-  const [latestRates, setLatestRates] = useState({ USD: 1.1, EUR: 1.0 }); // ✅ Store latest exchange rates
-  const [loading, setLoading] = useState(() => !localStorage.getItem("players"));
+  const [players, setPlayers] = useState({});
+  const [prices, setPrices] = useState({});
+  const [exchangeRates, setExchangeRates] = useState({});
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const lastUpdated = useRef(null); // ✅ Track last API update time without re-rendering
+  const [loading, setLoading] = useState(true);
 
   console.log("🚀 App gestartet");
 
-  // ✅ Fetch Latest Exchange Rates from API (Avoids redundant calls)
-  const fetchLatestExchangeRates = useCallback(async () => {
-    const now = Date.now();
-    if (lastUpdated.current && now - lastUpdated.current < 3600000) return; // Skip if updated <1h ago
-
-    try {
-      console.log("📡 Fetching latest exchange rates...");
-      const response = await fetch(`${API_URL}/latest`);
-      const data = await response.json();
-      console.log("💱 API Latest Exchange Rates:", data);
-
-      // ✅ Sicherstellen, dass wir den richtigen Tageskurs nehmen
-      const today = new Date().toISOString().split("T")[0]; // "2025-02-14"
-      const ratesForToday = data[today] || { USD: data.USD, EUR: data.EUR }; // Falls heute nicht existiert, nehme Hauptwerte
-
-      console.log("✅ Verwendete Wechselkurse:", ratesForToday);
-
-      setLatestRates(ratesForToday);
-      lastUpdated.current = now; // ✅ Track last update time
-    } catch (error) {
-      console.error("❌ Fehler beim Abrufen der neuesten Wechselkurse:", error);
-    }
-  }, []);
-
-  // ✅ Fetch Players Data
+  // 📌 API Fetch-Funktionen
   const fetchPlayers = useCallback(async () => {
     try {
-      setIsUpdating(true);
-      console.log("📡 Fetching players data...");
       const response = await fetch(`${API_URL}/players`);
       const data = await response.json();
-      console.log("👤 API Player-Daten:", data);
       setPlayers(data.players);
-      localStorage.setItem("players", JSON.stringify(data.players));
-      setLoading(false);
+      console.log("👤 Spieler-Daten:", data.players);
     } catch (error) {
       console.error("❌ Fehler beim Abrufen der Spieler:", error);
-    } finally {
-      setIsUpdating(false);
     }
   }, []);
 
-  // ✅ Fetch Historical Data
-  // ✅ Fetch Historical Data
-  const fetchHistory = useCallback(async () => {
+  const fetchPrices = useCallback(async () => {
     try {
-      setIsUpdating(true);
-      console.log("📡 Fetching history data...");
-      const response = await fetch(`${API_URL}/history`);
+      const response = await fetch(`${API_URL}/prices`);
       const data = await response.json();
-      console.log("📈 API History-Daten (Debugging):", JSON.stringify(data, null, 2)); // 🛠 Debugging Log
-      setHistory(data.history);
-      localStorage.setItem("history", JSON.stringify(data.history));
-      setLoading(false);
+      setPrices(data.prices);
+      console.log("📈 Aktienpreise:", data.prices);
     } catch (error) {
-      console.error("❌ Fehler beim Abrufen der Historie:", error);
-    } finally {
-      setIsUpdating(false);
+      console.error("❌ Fehler beim Abrufen der Aktienpreise:", error);
     }
   }, []);
 
-  // ✅ Fetch all data when component mounts
-  useEffect(() => {
-    fetchPlayers();
-    fetchHistory();
-    fetchLatestExchangeRates(); // ✅ Fetch latest exchange rates
-  }, [fetchLatestExchangeRates]);
+  const fetchExchangeRates = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/exchange_rates`);
+      const data = await response.json();
+      setExchangeRates(data.exchange_rates);
+      console.log("💱 Wechselkurse:", data.exchange_rates);
+    } catch (error) {
+      console.error("❌ Fehler beim Abrufen der Wechselkurse:", error);
+    }
+  }, []);
 
-  // ✅ Auto-update exchange rates every hour
+  // 📌 Daten beim Start laden
+  useEffect(() => {
+    Promise.all([fetchPlayers(), fetchPrices(), fetchExchangeRates()]).then(() => setLoading(false));
+  }, [fetchPlayers, fetchPrices, fetchExchangeRates]);
+
+  // 📌 Automatisches Update alle 20 Minuten
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchLatestExchangeRates();
-    }, 3600000); // Update every hour
-
+      fetchPrices();
+      fetchExchangeRates();
+    }, 1200000); // 20 Minuten (1200 * 1000 ms)
     return () => clearInterval(interval);
-  }, [fetchLatestExchangeRates]);
+  }, [fetchPrices, fetchExchangeRates]);
 
-  // ✅ Process Player Rankings
-  const rankingData = Object.keys(players)
-    .map((player) => {
-      let stocks = players[player];
-      if (!stocks || stocks.length === 0) return null;
+  // 📌 Spieler & Aktien berechnen
+  const rankingData = Object.keys(players).map((player, index) => {
+    let stocks = players[player].map((stock) => {
+      const stockData = prices[stock.ticker] || {};
+      const history = stockData.history || {};
+      const latestDate = Object.keys(history).pop();
+      const latestPrice = history[latestDate] || "N/A";
+      const currencyKey = "USD"; // Annahme: USD für alle Aktien, kann angepasst werden
+      const startExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
+      const currentExchangeRate = exchangeRates?.[currencyKey] || 1.0;
 
-      let totalPerformanceForGame = 0;
+      return {
+        ...stock,
+        startExchangeRate,
+        currentExchangeRate,
+        currentPrice: latestPrice.toFixed(2),
+      };
+    });
 
-      const stockData = stocks.map((stock) => {
-        const historyData = history[stock.ticker] || [];
-        const lastEntry = historyData.length ? historyData[historyData.length - 1] : null;
-        const eoyEntry = historyData.find((entry) => entry.Date === "2024-12-30") || lastEntry;
-
-        // ✅ Ensure `stock.currency` exists
-        const currencyKey = stock.currency ? stock.currency.trim().toUpperCase() : "CHF"; // Default CHF
-
-        // ✅ Use correct latest rate for the currency, else default to 1.0
-        const exchangeRate = latestRates[currencyKey] || 1.0;
-        const currentExchangeRate = exchangeRate !== 1.0 ? (1 / exchangeRate).toFixed(4) : "N/A"; // Ensure proper display
-
-        console.log(`🔍 ${stock.ticker} | Currency: ${currencyKey} | Rate: ${currentExchangeRate}`);
-
-        if (currentExchangeRate !== "N/A") {
-          totalPerformanceForGame += parseFloat(currentExchangeRate);
-        }
-
-        return {
-          ...stock,
-          currency: lastEntry?.currency || "N/A",
-          eoyPrice: eoyEntry?.close_price?.toFixed(2) || "N/A",
-          currentPrice: lastEntry?.close_price?.toFixed(2) || "N/A",
-          currentExchangeRate,
-        };
-      });
-
-      return { player, stocks: stockData, totalPerformanceForGame: totalPerformanceForGame.toFixed(2) };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.totalPerformanceForGame - a.totalPerformanceForGame)
-    .map((playerData, index) => ({ ...playerData, rank: index + 1 }));
-
-
-  // ✅ Define handlePlayerClick before returning JSX
-  const handlePlayerClick = (player) => {
-    setSelectedPlayer((prevSelected) => (prevSelected === player ? null : player));
-  };
+    return { player, stocks, rank: index + 1 };
+  });
 
   return (
     <div className="App">
       <h1>📈 Börsenspiel Rangliste</h1>
-      <button onClick={() => { fetchPlayers(); fetchHistory(); }}>🔄 Aktualisieren</button>
-
-      {isUpdating && <p className="update-info">🔄 Daten werden im Hintergrund aktualisiert...</p>}
-
+      <button onClick={() => Promise.all([fetchPlayers(), fetchPrices(), fetchExchangeRates()])}>
+        🔄 Aktualisieren
+      </button>
 
       {loading ? (
         <p>Lädt...</p>
@@ -156,74 +99,63 @@ function App() {
           <table className="players-table">
             <thead>
               <tr>
-                <th>#</th> {/* 🏆 Neue Spalte für Rang */}
-                <th>Player</th>
+                <th>#</th>
+                <th>Spieler</th>
                 <th>Aktien</th>
-                <th>Direction</th>
-                <th>Währung</th>
+                <th>Richtung</th>
                 <th>Währungskurs SOY</th>
-                <th>Währungskurs Current</th>
-                <th>EOY 2024</th>
-                <th>Current Price</th>
-                <th>Performance Aktie (%)</th>
-                <th>Performance Aktie in CHF</th>
-                <th>Performance für Game</th>
-                <th>Total Performance für Game</th>
+                <th>Währungskurs Aktuell</th>
+                <th>Aktueller Preis</th>
               </tr>
             </thead>
-
             <tbody>
-              {rankingData.map(({ rank, player, stocks, totalPerformanceForGame }, index) => {
-                const rowColor = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? '#cd7f32' : 'transparent';
-                return stocks.map((stock, stockIndex) => (
-                  <tr key={`${player}-${stock.ticker}`} style={{ backgroundColor: rowColor }} onClick={() => handlePlayerClick(player)}>
+              {rankingData.map(({ rank, player, stocks }) =>
+                stocks.map((stock, stockIndex) => (
+                  <tr key={`${player}-${stock.ticker}`} onClick={() => setSelectedPlayer(player)}>
                     {stockIndex === 0 && (
                       <>
-                        <td rowSpan={stocks.length}><strong>{rank}</strong></td>  {/* 🏆 Rang korrekt eingefügt */}
-                        <td rowSpan={stocks.length}><strong>{player}</strong></td>
+                        <td rowSpan={stocks.length}>{rank}</td>
+                        <td rowSpan={stocks.length}>{player}</td>
                       </>
                     )}
                     <td>{stock.ticker}</td>
                     <td>{stock.direction}</td>
-                    <td>{stock.currency}</td>
                     <td>{stock.startExchangeRate}</td>
                     <td>{stock.currentExchangeRate}</td>
-                    <td>{stock.eoyPrice}</td>
                     <td>{stock.currentPrice}</td>
-                    <td>{stock.performanceStock}%</td>
-                    <td>{stock.performanceInCHF}%</td>
-                    <td>{stock.performanceForGame}%</td>
-                    {stockIndex === 0 && (
-                      <td rowSpan={stocks.length}><strong>{totalPerformanceForGame}%</strong></td>
-                    )}
                   </tr>
-                ));
-              })}
+                ))
+              )}
             </tbody>
-
           </table>
 
           {selectedPlayer && (
             <div>
               <h2>📊 Kursverlauf für {selectedPlayer}</h2>
               <div className="chart-row">
-                {rankingData.find(p => p.player === selectedPlayer).stocks.map(stock => (
-                  <div
-                    className={`chart-container ${stock.direction === 'long' ? 'chart-long' : 'chart-short'}`}
-                    key={stock.ticker}
-                  >
-                    <h3 className="chart-direction">{stock.direction.toUpperCase()}</h3>
-                    <Line data={{
-                      labels: stock.priceHistory.map(e => e.Date),
-                      datasets: [{
-                        label: stock.ticker,
-                        data: stock.priceHistory.map(e => e.close_price),
-                        borderColor: stock.direction === 'long' ? 'green' : 'red',
-                        fill: false
-                      }]
-                    }} />
-                  </div>
-                ))}
+                {rankingData
+                  .find((p) => p.player === selectedPlayer)
+                  .stocks.map((stock) => {
+                    const history = prices[stock.ticker]?.history || {};
+                    return (
+                      <div key={stock.ticker} className="chart-container">
+                        <h3>{stock.direction.toUpperCase()} - {stock.ticker}</h3>
+                        <Line
+                          data={{
+                            labels: Object.keys(history),
+                            datasets: [
+                              {
+                                label: stock.ticker,
+                                data: Object.values(history),
+                                borderColor: stock.direction === "long" ? "green" : "red",
+                                fill: false,
+                              },
+                            ],
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}
