@@ -26,6 +26,7 @@ function App() {
       const response = await fetch(`${API_URL}/latest`);
       const data = await response.json();
       console.log("💱 API Latest Exchange Rates:", data);
+
       setLatestRates(data || { USD: 1.1, EUR: 1.0 }); // ✅ Ensure default fallback values
       lastUpdated.current = now; // ✅ Track last update time
     } catch (error) {
@@ -132,11 +133,13 @@ function App() {
         const lastEntry = historyData.length ? historyData[historyData.length - 1] : null;
         const eoyEntry = historyData.find((entry) => entry.Date === "2024-12-30") || lastEntry;
 
-        const startExchangeRate = getCurrencyRateSOY(historyData, stock.currency);
-        const exchangeRate = latestRates[stock.currency] ?? 1.0; // ✅ Fallback to 1.0 if undefined
-        const currentExchangeRate = (1 / exchangeRate).toFixed(4);
+        const currencyKey = stock.currency.trim().toUpperCase(); // ✅ Fix für Leerzeichen & Case-Sensitivity
+        const exchangeRate = latestRates[currencyKey] ?? 1.0; // ✅ Sicherstellen, dass ein Wert existiert
+        const currentExchangeRate = (1 / exchangeRate).toFixed(4); // ✅ 1 / Wechselkurs bleibt bestehen
 
-        const performance = calculatePerformance(eoyEntry?.close_price, lastEntry?.close_price, stock.direction, startExchangeRate, currentExchangeRate);
+        console.log(`🔍 ${stock.ticker} | Currency: ${currencyKey} | Rate: ${currentExchangeRate}`);
+
+        const performance = calculatePerformance(eoyEntry?.close_price, lastEntry?.close_price, stock.direction, getCurrencyRateSOY(historyData, stock.currency), currentExchangeRate);
 
         totalPerformanceForGame += performance.performanceForGame * 0.5;
 
@@ -148,7 +151,7 @@ function App() {
           performanceStock: performance.performanceStock.toFixed(2),
           performanceInCHF: performance.performanceInCHF.toFixed(2),
           performanceForGame: performance.performanceForGame.toFixed(2),
-          startExchangeRate,
+          startExchangeRate: getCurrencyRateSOY(historyData, stock.currency),
           currentExchangeRate,
         };
       });
