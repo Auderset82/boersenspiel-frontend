@@ -67,17 +67,34 @@ function App() {
     let stocks = players[player].map((stock) => {
       const stockData = prices[stock.ticker] || {};
       const history = stockData.history || {};
-      const latestDate = Object.keys(history).pop();
-      const latestPrice = history[latestDate] || "N/A";
-      const currencyKey = "USD"; // Annahme: USD für alle Aktien, kann angepasst werden
+      const currentPriceObj = stockData.current_price || {};
+      const latestDate = Object.keys(currentPriceObj).pop();
+      let latestPrice = currentPriceObj[latestDate] || null;
+
+      // Falls `current_price` nicht existiert, letzten bekannten Wert aus `history` nehmen
+      if (!latestPrice) {
+        const historyDates = Object.keys(history);
+        latestPrice = historyDates.length ? history[historyDates.pop()] : "N/A";
+      }
+
+      // Währung und Wechselkurse abrufen
+      const currencyKey = "USD"; // Standard USD
       const startExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
       const currentExchangeRate = exchangeRates?.[currencyKey] || 1.0;
+
+      // Performance Berechnung
+      const startPrice = history["2024-12-30"] || null;
+      const performance = startPrice
+        ? (((latestPrice - startPrice) / startPrice) * 100).toFixed(2) + "%"
+        : "N/A";
 
       return {
         ...stock,
         startExchangeRate,
         currentExchangeRate,
-        currentPrice: latestPrice.toFixed(2),
+        currentPrice: latestPrice ? latestPrice.toFixed(2) : "N/A",
+        startPrice: startPrice ? startPrice.toFixed(2) : "N/A",
+        performance,
       };
     });
 
@@ -105,7 +122,9 @@ function App() {
                 <th>Richtung</th>
                 <th>Währungskurs SOY</th>
                 <th>Währungskurs Aktuell</th>
+                <th>Startpreis</th>
                 <th>Aktueller Preis</th>
+                <th>Performance</th>
               </tr>
             </thead>
             <tbody>
@@ -122,7 +141,9 @@ function App() {
                     <td>{stock.direction}</td>
                     <td>{stock.startExchangeRate}</td>
                     <td>{stock.currentExchangeRate}</td>
+                    <td>{stock.startPrice}</td>
                     <td>{stock.currentPrice}</td>
+                    <td>{stock.performance}</td>
                   </tr>
                 ))
               )}
