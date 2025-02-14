@@ -60,12 +60,12 @@ function App() {
     const interval = setInterval(() => {
       fetchPrices();
       fetchExchangeRates();
-    }, 1200000); // 20 Minuten (1200 * 1000 ms)
+    }, 1200000);
     return () => clearInterval(interval);
   }, [fetchPrices, fetchExchangeRates]);
 
   // 📌 Spieler & Aktien berechnen
-  const rankingData = Object.keys(players).map((player, index) => {
+  let rankingData = Object.keys(players).map((player) => {
     let stocks = players[player].map((stock) => {
       const stockData = prices[stock.ticker] || {};
       const history = stockData.history || {};
@@ -79,30 +79,23 @@ function App() {
       const validStartPrice = typeof startPrice === "number" ? startPrice.toFixed(2) : "N/A";
       const validLatestPrice = typeof latestPrice === "number" ? latestPrice.toFixed(2) : "N/A";
 
-      // Währungslogik
       const currencyKey = stock.currency || "USD";
       const soyExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
       const currentExchangeRate = exchangeRates?.[currencyKey] || 1.0;
       const reciprocalSoy = soyExchangeRate !== 0 ? (1 / soyExchangeRate).toFixed(4) : "N/A";
       const reciprocalCurrent = currentExchangeRate !== 0 ? (1 / currentExchangeRate).toFixed(4) : "N/A";
 
-      // **Performance-Berechnung**
       let performance = "N/A";
       let performanceInCHF = "N/A";
       let performanceForGame = "N/A";
 
       if (typeof startPrice === "number" && typeof latestPrice === "number") {
-        // **1. Berechne die normale Performance**
         performance = (((latestPrice - startPrice) / startPrice) * 100).toFixed(2);
-
-        // **2. Währungsgewinn/-verlust berechnen**
         const currencyGainLoss = (reciprocalCurrent / reciprocalSoy) - 1;
 
-        // **3. Performance in CHF berechnen**
         performanceInCHF = ((1 + parseFloat(performance) / 100) * (1 + currencyGainLoss) - 1) * 100;
         performanceInCHF = performanceInCHF.toFixed(2);
 
-        // **4. Performance für das Spiel (short vs. long)**
         performanceForGame = stock.direction === "long"
           ? performanceInCHF
           : (-performanceInCHF).toFixed(2);
@@ -121,11 +114,19 @@ function App() {
       };
     });
 
-    // **Gesamtperformance berechnen**
     const totalPerformanceForGame = (parseFloat(stocks[0].performanceForGame) + parseFloat(stocks[1].performanceForGame)) / 2;
 
-    return { player, stocks, rank: index + 1, totalPerformanceForGame: `${totalPerformanceForGame.toFixed(2)}%` };
+    return { player, stocks, totalPerformanceForGame, rank: 0 };
   });
+
+  // **Sortiere nach Gesamtperformance absteigend**
+  rankingData.sort((a, b) => b.totalPerformanceForGame - a.totalPerformanceForGame);
+
+  // **Neuen Rang vergeben (1,2,3,...)**
+  rankingData = rankingData.map((playerData, index) => ({
+    ...playerData,
+    rank: index + 1,
+  }));
 
   return (
     <div className="App">
@@ -159,27 +160,35 @@ function App() {
             </thead>
             <tbody>
               {rankingData.map(({ rank, player, stocks, totalPerformanceForGame }) =>
-                stocks.map((stock, stockIndex) => (
-                  <tr key={`${player}-${stock.ticker}`} onClick={() => setSelectedPlayer(player)}>
-                    {stockIndex === 0 && (
-                      <>
-                        <td rowSpan={stocks.length}>{rank}</td>
-                        <td rowSpan={stocks.length}>{player}</td>
-                      </>
-                    )}
-                    <td>{stock.ticker}</td>
-                    <td>{stock.direction}</td>
-                    <td>{stock.currency}</td>
-                    <td>{stock.startExchangeRate}</td>
-                    <td>{stock.currentExchangeRate}</td>
-                    <td>{stock.startPrice}</td>
-                    <td>{stock.currentPrice}</td>
-                    <td>{stock.performance}</td>
-                    <td>{stock.performanceInCHF}</td>
-                    <td>{stock.performanceForGame}</td>
-                    {stockIndex === 0 && <td rowSpan={stocks.length}>{totalPerformanceForGame}</td>}
-                  </tr>
-                ))
+                stocks.map((stock, stockIndex) => {
+                  const rowColor =
+                    rank === 1 ? "#FFD700" : // Gold
+                      rank === 2 ? "#C0C0C0" : // Silber
+                        rank === 3 ? "#CD7F32" : // Bronze
+                          "transparent";
+
+                  return (
+                    <tr key={`${player}-${stock.ticker}`} onClick={() => setSelectedPlayer(player)} style={{ backgroundColor: rowColor }}>
+                      {stockIndex === 0 && (
+                        <>
+                          <td rowSpan={stocks.length}>{rank}</td>
+                          <td rowSpan={stocks.length}>{player}</td>
+                        </>
+                      )}
+                      <td>{stock.ticker}</td>
+                      <td>{stock.direction}</td>
+                      <td>{stock.currency}</td>
+                      <td>{stock.startExchangeRate}</td>
+                      <td>{stock.currentExchangeRate}</td>
+                      <td>{stock.startPrice}</td>
+                      <td>{stock.currentPrice}</td>
+                      <td>{stock.performance}</td>
+                      <td>{stock.performanceInCHF}</td>
+                      <td>{stock.performanceForGame}</td>
+                      {stockIndex === 0 && <td rowSpan={stocks.length}>{totalPerformanceForGame.toFixed(2)}%</td>}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
