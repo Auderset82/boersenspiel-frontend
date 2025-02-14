@@ -71,8 +71,14 @@ function App() {
       const history = stockData.history || {};
       const currentPriceObj = stockData.current_price || {};
       const latestDate = Object.keys(currentPriceObj).pop();
-      const latestPrice = currentPriceObj[latestDate] || "N/A";
-      const startPrice = Object.values(history)[0] || "N/A";
+      const latestPrice = currentPriceObj[latestDate];
+
+      // Startpreis aus Historie (erster Wert)
+      const startPrice = Object.values(history)[0];
+
+      // Sicherstellen, dass Werte numerisch sind
+      const validStartPrice = typeof startPrice === "number" ? startPrice.toFixed(2) : "N/A";
+      const validLatestPrice = typeof latestPrice === "number" ? latestPrice.toFixed(2) : "N/A";
 
       // Währungslogik: Reziprok nehmen
       const currencyKey = stock.ticker.includes(".SW") ? "CHF" : "USD"; // Annahme: ".SW" sind CHF, Rest USD
@@ -83,7 +89,7 @@ function App() {
 
       // Performance-Berechnung
       let performance = "N/A";
-      if (startPrice !== "N/A" && latestPrice !== "N/A") {
+      if (typeof startPrice === "number" && typeof latestPrice === "number") {
         performance = (((latestPrice - startPrice) / startPrice) * 100).toFixed(2) + "%";
       }
 
@@ -92,8 +98,8 @@ function App() {
         currency: currencyKey,
         startExchangeRate: reciprocalSoy,
         currentExchangeRate: reciprocalCurrent,
-        startPrice: startPrice.toFixed(2),
-        currentPrice: latestPrice.toFixed(2),
+        startPrice: validStartPrice,
+        currentPrice: validLatestPrice,
         performance,
       };
     });
