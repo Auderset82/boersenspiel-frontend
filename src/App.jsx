@@ -71,30 +71,41 @@ function App() {
       const history = stockData.history || {};
       const currentPriceObj = stockData.current_price || {};
 
-      // Sicherstellen, dass `latestDate` existiert
       const latestDate = currentPriceObj ? Object.keys(currentPriceObj).pop() : null;
       const latestPrice = latestDate ? currentPriceObj[latestDate] : null;
 
-      // Startpreis aus Historie (erster Wert)
       const startPrice = Object.values(history)[0];
 
-      // Sicherstellen, dass Werte numerisch sind
       const validStartPrice = typeof startPrice === "number" ? startPrice.toFixed(2) : "N/A";
       const validLatestPrice = typeof latestPrice === "number" ? latestPrice.toFixed(2) : "N/A";
 
-      // Währungslogik aus Backend übernehmen oder "USD" als Fallback setzen
+      // Währungslogik
       const currencyKey = stock.currency || "USD";
-
-      // Wechselkurse abrufen & reziprok berechnen
       const soyExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
       const currentExchangeRate = exchangeRates?.[currencyKey] || 1.0;
       const reciprocalSoy = soyExchangeRate !== 0 ? (1 / soyExchangeRate).toFixed(4) : "N/A";
       const reciprocalCurrent = currentExchangeRate !== 0 ? (1 / currentExchangeRate).toFixed(4) : "N/A";
 
-      // Performance-Berechnung
+      // **Performance-Berechnung**
       let performance = "N/A";
+      let performanceInCHF = "N/A";
+      let performanceForGame = "N/A";
+
       if (typeof startPrice === "number" && typeof latestPrice === "number") {
-        performance = (((latestPrice - startPrice) / startPrice) * 100).toFixed(2) + "%";
+        // **1. Berechne die normale Performance**
+        performance = (((latestPrice - startPrice) / startPrice) * 100).toFixed(2);
+
+        // **2. Währungsgewinn/-verlust berechnen**
+        const currencyGainLoss = (reciprocalCurrent / reciprocalSoy) - 1;
+
+        // **3. Performance in CHF berechnen**
+        performanceInCHF = ((1 + parseFloat(performance) / 100) * (1 + currencyGainLoss) - 1) * 100;
+        performanceInCHF = performanceInCHF.toFixed(2);
+
+        // **4. Performance für das Spiel (short vs. long)**
+        performanceForGame = stock.direction === "long"
+          ? performanceInCHF
+          : (-performanceInCHF).toFixed(2);
       }
 
       return {
@@ -104,11 +115,16 @@ function App() {
         currentExchangeRate: reciprocalCurrent,
         startPrice: validStartPrice,
         currentPrice: validLatestPrice,
-        performance,
+        performance: `${performance}%`,
+        performanceInCHF: `${performanceInCHF}%`,
+        performanceForGame: `${performanceForGame}%`,
       };
     });
 
-    return { player, stocks, rank: index + 1 };
+    // **Gesamtperformance berechnen**
+    const totalPerformanceForGame = (parseFloat(stocks[0].performanceForGame) + parseFloat(stocks[1].performanceForGame)) / 2;
+
+    return { player, stocks, rank: index + 1, totalPerformanceForGame: `${totalPerformanceForGame.toFixed(2)}%` };
   });
 
   return (
@@ -136,10 +152,13 @@ function App() {
                 <th>Startpreis</th>
                 <th>Aktueller Preis</th>
                 <th>Performance</th>
+                <th>Performance in CHF</th>
+                <th>Performance für Game</th>
+                <th>Gesamtperformance für Game</th>
               </tr>
             </thead>
             <tbody>
-              {rankingData.map(({ rank, player, stocks }) =>
+              {rankingData.map(({ rank, player, stocks, totalPerformanceForGame }) =>
                 stocks.map((stock, stockIndex) => (
                   <tr key={`${player}-${stock.ticker}`} onClick={() => setSelectedPlayer(player)}>
                     {stockIndex === 0 && (
@@ -156,44 +175,14 @@ function App() {
                     <td>{stock.startPrice}</td>
                     <td>{stock.currentPrice}</td>
                     <td>{stock.performance}</td>
+                    <td>{stock.performanceInCHF}</td>
+                    <td>{stock.performanceForGame}</td>
+                    {stockIndex === 0 && <td rowSpan={stocks.length}>{totalPerformanceForGame}</td>}
                   </tr>
                 ))
               )}
             </tbody>
           </table>
-
-          {selectedPlayer && (
-            <div>
-              <h2>📊 Kursverlauf für {selectedPlayer}</h2>
-              <div className="chart-row">
-                {rankingData
-                  .find((p) => p.player === selectedPlayer)
-                  .stocks.map((stock) => {
-                    const history = prices[stock.ticker]?.history || {};
-                    return (
-                      <div key={stock.ticker} className="chart-container">
-                        <h3>
-                          {stock.direction.toUpperCase()} - {stock.ticker}
-                        </h3>
-                        <Line
-                          data={{
-                            labels: Object.keys(history),
-                            datasets: [
-                              {
-                                label: stock.ticker,
-                                data: Object.values(history),
-                                borderColor: stock.direction === "long" ? "green" : "red",
-                                fill: false,
-                              },
-                            ],
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>
