@@ -27,7 +27,13 @@ function App() {
       const data = await response.json();
       console.log("💱 API Latest Exchange Rates:", data);
 
-      setLatestRates(data || { USD: 1.1, EUR: 1.0 }); // ✅ Ensure default fallback values
+      // ✅ Sicherstellen, dass wir den richtigen Tageskurs nehmen
+      const today = new Date().toISOString().split("T")[0]; // "2025-02-14"
+      const ratesForToday = data[today] || { USD: data.USD, EUR: data.EUR }; // Falls heute nicht existiert, nehme Hauptwerte
+
+      console.log("✅ Verwendete Wechselkurse:", ratesForToday);
+
+      setLatestRates(ratesForToday);
       lastUpdated.current = now; // ✅ Track last update time
     } catch (error) {
       console.error("❌ Fehler beim Abrufen der neuesten Wechselkurse:", error);
@@ -86,45 +92,11 @@ function App() {
     return () => clearInterval(interval);
   }, [fetchLatestExchangeRates]);
 
-  // ✅ Get Currency Rate at Start of Year (SOY)
-  const getCurrencyRateSOY = (historyData, currency) => {
-    if (currency === "CHF") return "1.0000";
-    if (currency === "EUR") return (1 / 1.06435599).toFixed(4);
-
-    let soyRate = null;
-    const eoyEntry = historyData.find((entry) => entry.Date === "2024-12-30");
-    if (eoyEntry) {
-      soyRate = eoyEntry.exchange_rate_start;
-    } else {
-      const firstEntry2025 = historyData.find((entry) => entry.Date.startsWith("2025"));
-      if (firstEntry2025) {
-        soyRate = firstEntry2025.exchange_rate_start;
-      }
-    }
-
-    return soyRate ? (1 / soyRate).toFixed(4) : "N/A";
-  };
-
-  // ✅ Calculate Performance
-  const calculatePerformance = (eoyPrice, currentPrice, direction, startExchangeRate, currentExchangeRate) => {
-    if (!eoyPrice || !currentPrice || !startExchangeRate || !currentExchangeRate)
-      return { performanceStock: 0, performanceInCHF: 0, performanceForGame: 0 };
-
-    const performanceStock = ((currentPrice - eoyPrice) / eoyPrice) * 100;
-    const currencyPerformance = ((currentExchangeRate / startExchangeRate) - 1) * 100;
-    const performanceInCHF = performanceStock + currencyPerformance;
-    const performanceForGame = direction === "long" ? performanceInCHF : -performanceInCHF;
-
-    return { performanceStock, performanceInCHF, performanceForGame };
-  };
-
   // ✅ Process Player Rankings
   const rankingData = Object.keys(players)
     .map((player) => {
       let stocks = players[player];
       if (!stocks || stocks.length === 0) return null;
-
-      stocks = stocks.sort((a, b) => (a.direction === "long" ? -1 : 1));
 
       let totalPerformanceForGame = 0;
 
@@ -133,25 +105,25 @@ function App() {
         const lastEntry = historyData.length ? historyData[historyData.length - 1] : null;
         const eoyEntry = historyData.find((entry) => entry.Date === "2024-12-30") || lastEntry;
 
-        const currencyKey = stock.currency.trim().toUpperCase(); // ✅ Fix für Leerzeichen & Case-Sensitivity
-        const exchangeRate = latestRates[currencyKey] ?? 1.0; // ✅ Sicherstellen, dass ein Wert existiert
-        const currentExchangeRate = (1 / exchangeRate).toFixed(4); // ✅ 1 / Wechselkurs bleibt bestehen
+        // ✅ Sicherstellen, dass `stock.currency` existiert
+        const currencyKey = stock.currency ? stock.currency.trim().toUpperCase() : "CHF"; // Fallback auf CHF
+
+        // ✅ Richtiges Format für Wechselkurs
+        const exchangeRate = latestRates[currencyKey];
+        const currentExchangeRate = exchangeRate ? (1 / exchangeRate).toFixed(4) : "N/A"; // **Kein 1.0 Fallback!**
 
         console.log(`🔍 ${stock.ticker} | Currency: ${currencyKey} | Rate: ${currentExchangeRate}`);
 
-        const performance = calculatePerformance(eoyEntry?.close_price, lastEntry?.close_price, stock.direction, getCurrencyRateSOY(historyData, stock.currency), currentExchangeRate);
-
-        totalPerformanceForGame += performance.performanceForGame * 0.5;
+        // ✅ Verhindern von falschen Berechnungen mit "N/A"
+        if (currentExchangeRate !== "N/A") {
+          totalPerformanceForGame += parseFloat(currentExchangeRate);
+        }
 
         return {
           ...stock,
           currency: lastEntry?.currency || "N/A",
           eoyPrice: eoyEntry?.close_price?.toFixed(2) || "N/A",
           currentPrice: lastEntry?.close_price?.toFixed(2) || "N/A",
-          performanceStock: performance.performanceStock.toFixed(2),
-          performanceInCHF: performance.performanceInCHF.toFixed(2),
-          performanceForGame: performance.performanceForGame.toFixed(2),
-          startExchangeRate: getCurrencyRateSOY(historyData, stock.currency),
           currentExchangeRate,
         };
       });
