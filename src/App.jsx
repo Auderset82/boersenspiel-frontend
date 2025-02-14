@@ -50,7 +50,9 @@ function App() {
 
   // 📌 Daten beim Start laden
   useEffect(() => {
-    Promise.all([fetchPlayers(), fetchPrices(), fetchExchangeRates()]).then(() => setLoading(false));
+    Promise.all([fetchPlayers(), fetchPrices(), fetchExchangeRates()]).then(() =>
+      setLoading(false)
+    );
   }, [fetchPlayers, fetchPrices, fetchExchangeRates]);
 
   // 📌 Automatisches Update alle 20 Minuten
@@ -69,31 +71,29 @@ function App() {
       const history = stockData.history || {};
       const currentPriceObj = stockData.current_price || {};
       const latestDate = Object.keys(currentPriceObj).pop();
-      let latestPrice = currentPriceObj[latestDate] || null;
+      const latestPrice = currentPriceObj[latestDate] || "N/A";
+      const startPrice = Object.values(history)[0] || "N/A";
 
-      // Falls `current_price` nicht existiert, letzten bekannten Wert aus `history` nehmen
-      if (!latestPrice) {
-        const historyDates = Object.keys(history);
-        latestPrice = historyDates.length ? history[historyDates.pop()] : "N/A";
-      }
-
-      // Währung und Wechselkurse abrufen
-      const currencyKey = "USD"; // Standard USD
-      const startExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
+      // Währungslogik: Reziprok nehmen
+      const currencyKey = stock.ticker.includes(".SW") ? "CHF" : "USD"; // Annahme: ".SW" sind CHF, Rest USD
+      const soyExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
       const currentExchangeRate = exchangeRates?.[currencyKey] || 1.0;
+      const reciprocalSoy = soyExchangeRate !== 0 ? (1 / soyExchangeRate).toFixed(4) : "N/A";
+      const reciprocalCurrent = currentExchangeRate !== 0 ? (1 / currentExchangeRate).toFixed(4) : "N/A";
 
-      // Performance Berechnung
-      const startPrice = history["2024-12-30"] || null;
-      const performance = startPrice
-        ? (((latestPrice - startPrice) / startPrice) * 100).toFixed(2) + "%"
-        : "N/A";
+      // Performance-Berechnung
+      let performance = "N/A";
+      if (startPrice !== "N/A" && latestPrice !== "N/A") {
+        performance = (((latestPrice - startPrice) / startPrice) * 100).toFixed(2) + "%";
+      }
 
       return {
         ...stock,
-        startExchangeRate,
-        currentExchangeRate,
-        currentPrice: latestPrice ? latestPrice.toFixed(2) : "N/A",
-        startPrice: startPrice ? startPrice.toFixed(2) : "N/A",
+        currency: currencyKey,
+        startExchangeRate: reciprocalSoy,
+        currentExchangeRate: reciprocalCurrent,
+        startPrice: startPrice.toFixed(2),
+        currentPrice: latestPrice.toFixed(2),
         performance,
       };
     });
@@ -120,6 +120,7 @@ function App() {
                 <th>Spieler</th>
                 <th>Aktien</th>
                 <th>Richtung</th>
+                <th>Währung</th>
                 <th>Währungskurs SOY</th>
                 <th>Währungskurs Aktuell</th>
                 <th>Startpreis</th>
@@ -139,6 +140,7 @@ function App() {
                     )}
                     <td>{stock.ticker}</td>
                     <td>{stock.direction}</td>
+                    <td>{stock.currency}</td>
                     <td>{stock.startExchangeRate}</td>
                     <td>{stock.currentExchangeRate}</td>
                     <td>{stock.startPrice}</td>
@@ -160,7 +162,9 @@ function App() {
                     const history = prices[stock.ticker]?.history || {};
                     return (
                       <div key={stock.ticker} className="chart-container">
-                        <h3>{stock.direction.toUpperCase()} - {stock.ticker}</h3>
+                        <h3>
+                          {stock.direction.toUpperCase()} - {stock.ticker}
+                        </h3>
                         <Line
                           data={{
                             labels: Object.keys(history),
