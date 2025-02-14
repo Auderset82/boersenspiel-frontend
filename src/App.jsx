@@ -70,8 +70,10 @@ function App() {
       const stockData = prices[stock.ticker] || {};
       const history = stockData.history || {};
       const currentPriceObj = stockData.current_price || {};
-      const latestDate = Object.keys(currentPriceObj).pop();
-      const latestPrice = currentPriceObj[latestDate];
+
+      // Sicherstellen, dass `latestDate` existiert
+      const latestDate = currentPriceObj ? Object.keys(currentPriceObj).pop() : null;
+      const latestPrice = latestDate ? currentPriceObj[latestDate] : null;
 
       // Startpreis aus Historie (erster Wert)
       const startPrice = Object.values(history)[0];
@@ -80,8 +82,10 @@ function App() {
       const validStartPrice = typeof startPrice === "number" ? startPrice.toFixed(2) : "N/A";
       const validLatestPrice = typeof latestPrice === "number" ? latestPrice.toFixed(2) : "N/A";
 
-      // Währungslogik: Reziprok nehmen
-      const currencyKey = stock.ticker.includes(".SW") ? "CHF" : "USD"; // Annahme: ".SW" sind CHF, Rest USD
+      // Währungslogik aus Backend übernehmen oder "USD" als Fallback setzen
+      const currencyKey = stock.currency || "USD";
+
+      // Wechselkurse abrufen & reziprok berechnen
       const soyExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
       const currentExchangeRate = exchangeRates?.[currencyKey] || 1.0;
       const reciprocalSoy = soyExchangeRate !== 0 ? (1 / soyExchangeRate).toFixed(4) : "N/A";
