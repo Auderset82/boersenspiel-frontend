@@ -114,7 +114,7 @@ function App() {
           performanceForGame: `${performanceForGame}%`,
         };
       })
-      .sort((a, b) => (a.direction === "long" ? -1 : 1)); // **Sortiere Long zuerst, dann Short**
+      .sort((a, b) => (a.direction === "long" ? -1 : 1));
 
     const totalPerformanceForGame = (parseFloat(stocks[0].performanceForGame) + parseFloat(stocks[1].performanceForGame)) / 2;
 
@@ -149,12 +149,12 @@ function App() {
                 <th>Spieler</th>
                 <th>Aktien</th>
                 <th>Richtung</th>
-                <th>Währung</th>
-                <th>Währungskurs SOY</th>
-                <th>Währungskurs Aktuell</th>
                 <th>Startpreis</th>
                 <th>Aktueller Preis</th>
                 <th>Performance</th>
+                <th>Währung</th>
+                <th>Währungskurs SOY</th>
+                <th>Währungskurs Aktuell</th>
                 <th>Performance in CHF</th>
                 <th>Performance für Game</th>
                 <th>Gesamtperformance für Game</th>
@@ -179,12 +179,12 @@ function App() {
                       )}
                       <td>{stock.ticker}</td>
                       <td>{stock.direction}</td>
-                      <td>{stock.currency}</td>
-                      <td>{stock.startExchangeRate}</td>
-                      <td>{stock.currentExchangeRate}</td>
                       <td>{stock.startPrice}</td>
                       <td>{stock.currentPrice}</td>
                       <td>{stock.performance}</td>
+                      <td>{stock.currency}</td>
+                      <td>{stock.startExchangeRate}</td>
+                      <td>{stock.currentExchangeRate}</td>
                       <td>{stock.performanceInCHF}</td>
                       <td>{stock.performanceForGame}</td>
                       {stockIndex === 0 && <td rowSpan={stocks.length}>{totalPerformanceForGame.toFixed(2)}%</td>}
