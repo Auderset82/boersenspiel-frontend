@@ -59,13 +59,14 @@ function App() {
   }, []);
 
   // ✅ Fetch Historical Data
+  // ✅ Fetch Historical Data
   const fetchHistory = useCallback(async () => {
     try {
       setIsUpdating(true);
       console.log("📡 Fetching history data...");
       const response = await fetch(`${API_URL}/history`);
       const data = await response.json();
-      console.log("📈 API History-Daten:", data);
+      console.log("📈 API History-Daten (Debugging):", JSON.stringify(data, null, 2)); // 🛠 Debugging Log
       setHistory(data.history);
       localStorage.setItem("history", JSON.stringify(data.history));
       setLoading(false);
