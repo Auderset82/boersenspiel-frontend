@@ -105,16 +105,15 @@ function App() {
         const lastEntry = historyData.length ? historyData[historyData.length - 1] : null;
         const eoyEntry = historyData.find((entry) => entry.Date === "2024-12-30") || lastEntry;
 
-        // ✅ Sicherstellen, dass `stock.currency` existiert
-        const currencyKey = stock.currency ? stock.currency.trim().toUpperCase() : "CHF"; // Fallback auf CHF
+        // ✅ Ensure `stock.currency` exists
+        const currencyKey = stock.currency ? stock.currency.trim().toUpperCase() : "CHF"; // Default CHF
 
-        // ✅ Richtiges Format für Wechselkurs
-        const exchangeRate = latestRates[currencyKey];
-        const currentExchangeRate = exchangeRate ? (1 / exchangeRate).toFixed(4) : "N/A"; // **Kein 1.0 Fallback!**
+        // ✅ Use correct latest rate for the currency, else default to 1.0
+        const exchangeRate = latestRates[currencyKey] || 1.0;
+        const currentExchangeRate = exchangeRate !== 1.0 ? (1 / exchangeRate).toFixed(4) : "N/A"; // Ensure proper display
 
         console.log(`🔍 ${stock.ticker} | Currency: ${currencyKey} | Rate: ${currentExchangeRate}`);
 
-        // ✅ Verhindern von falschen Berechnungen mit "N/A"
         if (currentExchangeRate !== "N/A") {
           totalPerformanceForGame += parseFloat(currentExchangeRate);
         }
@@ -133,6 +132,7 @@ function App() {
     .filter(Boolean)
     .sort((a, b) => b.totalPerformanceForGame - a.totalPerformanceForGame)
     .map((playerData, index) => ({ ...playerData, rank: index + 1 }));
+
 
   // ✅ Define handlePlayerClick before returning JSX
   const handlePlayerClick = (player) => {
