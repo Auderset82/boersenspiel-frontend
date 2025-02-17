@@ -5,10 +5,8 @@ import "chart.js/auto";
 import { fetchPlayers, fetchPrices, fetchExchangeRates } from "./utils/fetchData";
 
 
-const API_URL =
-  process.env.REACT_APP_ENV === "production"
-    ? "https://boersenspiel-backend.onrender.com"
-    : "http://localhost:10000";
+const API_URL = "https://boersenspiel-backend.onrender.com";
+
 
 
 
