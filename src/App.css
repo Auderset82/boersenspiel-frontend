@@ -179,3 +179,129 @@ button:hover {
     width: 100%;
   }
 }
+
+/* 📌 Styling für die Rangliste vergangener Jahre */
+.historical-table {
+  width: 100%;
+  min-width: 600px;
+  margin: 20px auto;
+  border-collapse: collapse;
+}
+
+.historical-table th,
+.historical-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+.historical-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+/* 📌 Hintergrundfarben für die Top 3 Spieler */
+.gold-row {
+  background-color: #FFD700 !important;
+  /* Gold für Platz 1 */
+}
+
+.silver-row {
+  background-color: #C0C0C0 !important;
+  /* Silber für Platz 2 */
+}
+
+.bronze-row {
+  background-color: #CD7F32 !important;
+  /* Bronze für Platz 3 */
+}
+
+/* 🏆 Tabelle optisch zentrieren */
+.historical-table tbody tr {
+  transition: background-color 0.3s ease-in-out;
+}
+
+.historical-table tbody tr:hover {
+  background-color: #e3f2fd;
+}
+
+/* Heatmap-Tabelle Stil */
+.analysis-table {
+  width: 80%;
+  margin: 20px auto;
+  border-collapse: collapse;
+  font-size: 18px;
+  text-align: center;
+}
+
+/* Tabellenüberschrift */
+.analysis-table th {
+  background-color: #444;
+  color: white;
+  padding: 10px;
+}
+
+/* Tabellenzellen */
+.analysis-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  font-weight: bold;
+  transition: background-color 0.3s ease-in-out;
+  /* Weicher Farbübergang */
+}
+
+/* Farbgebung für positive und negative Werte */
+.analysis-table td[data-value] {
+  color: white;
+}
+
+.analysis-table td[data-value^="-"] {
+  background-color: rgb(255, 100, 100);
+  /* Standard Rot für negative Werte */
+}
+
+.analysis-table td[data-value^="-5"] {
+  background-color: rgb(230, 80, 80);
+}
+
+.analysis-table td[data-value^="-10"] {
+  background-color: rgb(200, 60, 60);
+}
+
+.analysis-table td[data-value^="-20"] {
+  background-color: rgb(170, 40, 40);
+}
+
+.analysis-table td[data-value^="-50"] {
+  background-color: rgb(140, 20, 20);
+}
+
+.analysis-table td[data-value^="-100"] {
+  background-color: rgb(110, 0, 0);
+}
+
+.analysis-table td[data-value^="0"] {
+  background-color: rgb(240, 240, 240);
+  /* Neutral Grau */
+  color: black;
+}
+
+.analysis-table td[data-value^="5"] {
+  background-color: rgb(80, 200, 80);
+}
+
+.analysis-table td[data-value^="10"] {
+  background-color: rgb(60, 170, 60);
+}
+
+.analysis-table td[data-value^="20"] {
+  background-color: rgb(40, 140, 40);
+}
+
+.analysis-table td[data-value^="50"] {
+  background-color: rgb(20, 110, 20);
+}
+
+.analysis-table td[data-value^="100"] {
+  background-color: rgb(0, 80, 0);
+}
