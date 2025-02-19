@@ -203,20 +203,20 @@ function App() {
         const stockData = prices[stock.ticker] || {};
         const history = stockData.history || {};
 
-        // Falls `current_price` nicht existiert, nimm den letzten Wert aus `history`
-        let latestPrice = stockData.current_price;
+        // Falls `current_price` nicht existiert, nimm den neuesten Wert aus `history`
+        let latestPrice = stockData.current_price || null;
 
         if (!latestPrice && stockData.history) {
           const historyEntries = Object.entries(stockData.history);
           if (historyEntries.length > 0) {
-            // Sortiere die History nach Datum und nimm den letzten verfügbaren Wert
-            historyEntries.sort((a, b) => new Date(a[0]) - new Date(b[0]));
-            latestPrice = historyEntries.pop()[1];  // Letzten Wert nehmen
+            historyEntries.sort((a, b) => new Date(b[0]) - new Date(a[0])); // Neueste zuerst
+            latestPrice = historyEntries[0][1];  // Neuester Preis
           }
         }
 
-        // Falls immer noch nichts gefunden wurde, auf "N/A" setzen
-        latestPrice = latestPrice || "N/A";
+        // Falls immer noch kein Preis gefunden, setze auf "N/A"
+        latestPrice = latestPrice ? latestPrice.toFixed(2) : "N/A";
+
 
 
 
