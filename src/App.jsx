@@ -198,73 +198,67 @@ function App() {
 
   // 📌 Spieler & Aktien berechnen
   let rankingData = Object.keys(players).map((player) => {
-    let stocks = players[player]
-      .map((stock) => {
-        const stockData = prices[stock.ticker] || {};
-        const history = stockData.history || {};
+    let stocks = players[player].map((stock) => {
+      const stockData = prices[stock.ticker] || {};
+      const history = stockData.history || {};
 
-        // Falls `current_price` nicht existiert, nimm den neuesten Wert aus `history`
-        let latestPrice = stockData.current_price || null;
+      // ✅ Sort history (oldest first)
+      const sortedHistory = Object.entries(history).sort((a, b) => new Date(a[0]) - new Date(b[0]));
 
-        if (!latestPrice && stockData.history) {
-          const historyEntries = Object.entries(stockData.history);
-          if (historyEntries.length > 0) {
-            historyEntries.sort((a, b) => new Date(b[0]) - new Date(a[0])); // Neueste zuerst
-            latestPrice = historyEntries[0][1];  // Neuester Preis
-          }
-        }
+      // ✅ Get startPrice (earliest available price)
+      const startPrice = sortedHistory.length > 0 ? parseFloat(sortedHistory[0][1]) : null;
 
-        // Falls immer noch kein Preis gefunden, setze auf "N/A"
-        latestPrice = latestPrice ? latestPrice.toFixed(2) : "N/A";
+      // ✅ Use `current_price`, otherwise take the most recent historical price
+      let latestPrice = stockData.current_price && !isNaN(stockData.current_price) ? stockData.current_price : null;
 
+      if (!latestPrice && sortedHistory.length > 0) {
+        latestPrice = parseFloat(sortedHistory[sortedHistory.length - 1][1]); // Get latest historical price
+      }
 
+      // ✅ Handle cases where prices are missing
+      const validStartPrice = startPrice !== null ? startPrice.toFixed(2) : "N/A";
+      const validLatestPrice = latestPrice !== null ? latestPrice.toFixed(2) : "N/A";
 
+      const currencyKey = stock.currency || "USD";
+      const soyExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
+      const currentExchangeRate = exchangeRates?.[currencyKey] || 1.0;
+      const reciprocalSoy = soyExchangeRate !== 0 ? (1 / soyExchangeRate).toFixed(4) : "N/A";
+      const reciprocalCurrent = currentExchangeRate !== 0 ? (1 / currentExchangeRate).toFixed(4) : "N/A";
 
-        const startPrice = Object.values(history)[0];
+      let performance = "N/A";
+      let performanceInCHF = "N/A";
+      let performanceForGame = "N/A";
 
-        const validStartPrice = typeof startPrice === "number" ? startPrice.toFixed(2) : "N/A";
-        const validLatestPrice = typeof latestPrice === "number" ? latestPrice.toFixed(2) : "N/A";
+      if (startPrice !== null && latestPrice !== null) {
+        performance = (((latestPrice - startPrice) / startPrice) * 100).toFixed(2);
+        const currencyGainLoss = (reciprocalCurrent / reciprocalSoy) - 1;
 
-        const currencyKey = stock.currency || "USD";
-        const soyExchangeRate = exchangeRates?.SOY_EXCHANGE_RATES?.[currencyKey] || 1.0;
-        const currentExchangeRate = exchangeRates?.[currencyKey] || 1.0;
-        const reciprocalSoy = soyExchangeRate !== 0 ? (1 / soyExchangeRate).toFixed(4) : "N/A";
-        const reciprocalCurrent = currentExchangeRate !== 0 ? (1 / currentExchangeRate).toFixed(4) : "N/A";
+        performanceInCHF = ((1 + parseFloat(performance) / 100) * (1 + currencyGainLoss) - 1) * 100;
+        performanceInCHF = performanceInCHF.toFixed(2);
 
-        let performance = "N/A";
-        let performanceInCHF = "N/A";
-        let performanceForGame = "N/A";
+        performanceForGame = stock.direction === "long"
+          ? performanceInCHF
+          : (-performanceInCHF).toFixed(2);
+      }
 
-        if (typeof startPrice === "number" && typeof latestPrice === "number") {
-          performance = (((latestPrice - startPrice) / startPrice) * 100).toFixed(2);
-          const currencyGainLoss = (reciprocalCurrent / reciprocalSoy) - 1;
-
-          performanceInCHF = ((1 + parseFloat(performance) / 100) * (1 + currencyGainLoss) - 1) * 100;
-          performanceInCHF = performanceInCHF.toFixed(2);
-
-          performanceForGame = stock.direction === "long"
-            ? performanceInCHF
-            : (-performanceInCHF).toFixed(2);
-        }
-
-        return {
-          ...stock,
-          currency: currencyKey,
-          startExchangeRate: reciprocalSoy,
-          currentExchangeRate: reciprocalCurrent,
-          startPrice: validStartPrice,
-          currentPrice: validLatestPrice,
-          performance: `${performance}%`,
-          performanceInCHF: `${performanceInCHF}%`,
-          performanceForGame: `${performanceForGame}%`,
-        };
-      })
-      .sort((a, b) => (a.direction === "long" ? -1 : 1));
+      return {
+        ...stock,
+        currency: currencyKey,
+        startExchangeRate: reciprocalSoy,
+        currentExchangeRate: reciprocalCurrent,
+        startPrice: validStartPrice,
+        currentPrice: validLatestPrice,
+        performance: `${performance}%`,
+        performanceInCHF: `${performanceInCHF}%`,
+        performanceForGame: `${performanceForGame}%`,
+      };
+    });
 
     const totalPerformanceForGame = (parseFloat(stocks[0].performanceForGame) + parseFloat(stocks[1].performanceForGame)) / 2;
 
     return { player, stocks, totalPerformanceForGame, rank: 0 };
   });
+
 
   // **Sortiere nach Gesamtperformance absteigend**
   rankingData.sort((a, b) => b.totalPerformanceForGame - a.totalPerformanceForGame);
