@@ -15,16 +15,14 @@ export const fetchPrices = async (API_URL, setPrices) => {
         const response = await fetch(`${API_URL}/prices`);
         const data = await response.json();
 
-        // ✅ Normalize tickers for frontend
-        const normalizedPrices = Object.keys(data.prices).reduce((acc, backendTicker) => {
-            let frontendTicker = backendTicker.replace(".XETRA", ".DE")
-                .replace(".XSWX", ".SW")
-                .replace(".XBRU", ".BR");
+        console.log("🔍 Backend Prices Tickers:", Object.keys(data.prices));
 
-            const stockData = data.prices[backendTicker];
+        // ✅ Directly map tickers without modifying names
+        const normalizedPrices = Object.keys(data.prices).reduce((acc, ticker) => {
+            const stockData = data.prices[ticker];
 
             if (!stockData) {
-                console.warn(`⚠️ Kein Datenobjekt für ${backendTicker}`);
+                console.warn(`⚠️ Kein Datenobjekt für ${ticker}`);
                 return acc;
             }
 
@@ -45,9 +43,9 @@ export const fetchPrices = async (API_URL, setPrices) => {
             }
 
             // ✅ Log prices for debugging
-            console.log(`🔍 Ticker: ${frontendTicker} | Latest Price: ${latestPrice} | History:`, sortedHistory);
+            console.log(`🔍 Ticker: ${ticker} | Latest Price: ${latestPrice} | History:`, sortedHistory);
 
-            acc[frontendTicker] = {
+            acc[ticker] = {
                 current_price: latestPrice !== undefined ? latestPrice : "N/A",
                 history: sortedHistory,
             };
@@ -61,6 +59,7 @@ export const fetchPrices = async (API_URL, setPrices) => {
         console.error("❌ Fehler beim Abrufen der Aktienpreise:", error);
     }
 };
+
 
 
 export const fetchExchangeRates = async (API_URL, setExchangeRates) => {
