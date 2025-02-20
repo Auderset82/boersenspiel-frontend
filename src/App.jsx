@@ -23,6 +23,23 @@ function App() {
   const [performanceMatrix, setPerformanceMatrix] = useState({});
   const [showAnalysis, setShowAnalysis] = useState(false);
 
+  useEffect(() => {
+    // ✅ Google Analytics Tracking-Code dynamisch einfügen
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://www.googletagmanager.com/gtag/js?id=G-XV2BP9K51W";
+    document.head.appendChild(script);
+
+    script.onload = () => {
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      window.gtag = gtag;
+
+      gtag('js', new Date());
+      gtag('config', 'G-XV2BP9K51W');
+    };
+  }, []);
+
   const getColor = (value) => {
     if (value === "N/A") return "#F8F8F8"; // Helles Grau für "N/A"
     const num = parseFloat(value);
