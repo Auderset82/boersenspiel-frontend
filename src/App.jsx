@@ -113,6 +113,9 @@ function App() {
   // Countdown in Minuten und Sekunden umrechnen
   const minutes = Math.floor(countdown / 60);
   const seconds = countdown % 60;
+  useEffect(() => {
+    setCountdown(nextUpdate);
+  }, [nextUpdate]);
 
 
 
