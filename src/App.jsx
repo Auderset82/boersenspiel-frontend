@@ -83,7 +83,7 @@ function App() {
     try {
       const response = await fetch(`${API_URL}/prices`);
       const data = await response.json();
-      setPricesData(data.prices);
+      setPrices(data.prices);
       // Setze den nächsten Update-Wert, der aus der API kommt
       setNextUpdate(data.next_update_in_seconds);
       // Aktualisiere den lokalen Countdown direkt
