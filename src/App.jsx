@@ -129,10 +129,19 @@ function App() {
   // Countdown-Logik: Jede Sekunde wird der lokale Countdown heruntergezählt
   useEffect(() => {
     const countdownInterval = setInterval(() => {
-      setCountdown((prevCountdown) => (prevCountdown > 0 ? prevCountdown - 1 : 0));
+      setCountdown((prevCountdown) => {
+        if (prevCountdown <= 1) {
+          // API aufrufen und Countdown zurücksetzen
+          getPrices();
+          return 900; // 15 Minuten in Sekunden
+        } else {
+          return prevCountdown - 1;
+        }
+      });
     }, 1000);
     return () => clearInterval(countdownInterval);
   }, []);
+
 
   // Countdown in Minuten und Sekunden umrechnen
   const minutes = Math.floor(countdown / 60);
