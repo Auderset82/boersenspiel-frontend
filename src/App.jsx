@@ -546,7 +546,7 @@ function App() {
                         <td>{stock.direction}</td>
                         <td>{stock.startPrice}</td>
                         {/* Hier ersetzt du stock.currentPrice durch den blinkenden Preis */}
-                        <BlinkingPrice price={prices[stock.ticker].current_price} />
+                        <BlinkingPrice price={prices[stock.ticker] ? prices[stock.ticker].current_price : "N/A"} />
                         <td>{stock.performance}</td>
                         <td>{stock.currency}</td>
                         <td>{stock.startExchangeRate}</td>
