@@ -305,3 +305,17 @@ button:hover {
 .analysis-table td[data-value^="100"] {
   background-color: rgb(0, 80, 0);
 }
+
+.blink {
+  animation: blinkAnimation 1s ease;
+}
+
+@keyframes blinkAnimation {
+  from {
+    background-color: yellow;
+  }
+
+  to {
+    background-color: transparent;
+  }
+}

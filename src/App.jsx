@@ -9,6 +9,30 @@ const API_URL = "https://boersenspiel-backend.onrender.com";
 
 
 
+// Custom Hook zum Speichern des vorherigen Werts
+const usePrevious = (value) => {
+  const ref = useRef();
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+};
+
+// BlinkingPrice-Component, der blinkt, wenn sich der Preis ändert
+const BlinkingPrice = ({ price }) => {
+  const [blink, setBlink] = useState(false);
+  const prevPrice = usePrevious(price);
+
+  useEffect(() => {
+    if (prevPrice !== undefined && prevPrice !== price) {
+      setBlink(true);
+      const timer = setTimeout(() => setBlink(false), 1000); // blinkt für 1 Sekunde
+      return () => clearTimeout(timer);
+    }
+  }, [price, prevPrice]);
+
+  return <td className={blink ? "blink" : ""}>{price}</td>;
+};
 
 
 
@@ -512,13 +536,15 @@ function App() {
                         <td>{stock.ticker}</td>
                         <td>{stock.direction}</td>
                         <td>{stock.startPrice}</td>
-                        <td>{stock.currentPrice}</td>
+                        {/* Hier ersetzt du stock.currentPrice durch den blinkenden Preis */}
+                        <BlinkingPrice price={prices[ticker].current_price} />
                         <td>{stock.performance}</td>
                         <td>{stock.currency}</td>
                         <td>{stock.startExchangeRate}</td>
                         <td>{stock.currentExchangeRate}</td>
                         <td>{stock.performanceInCHF}</td>
                         <td>{stock.performanceForGame}</td>
+
                         {stockIndex === 0 && <td rowSpan={stocks.length}>{totalPerformanceForGame.toFixed(2)}%</td>}
                       </tr>
                     );
