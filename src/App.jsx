@@ -11,6 +11,8 @@ const API_URL = "https://boersenspiel-backend.onrender.com";
 
 
 
+
+
 function App() {
   const [players, setPlayers] = useState({});
   const [prices, setPrices] = useState({});
@@ -22,6 +24,11 @@ function App() {
   const [analysisData, setAnalysisData] = useState([]); // Speichert die Analysen
   const [performanceMatrix, setPerformanceMatrix] = useState({});
   const [showAnalysis, setShowAnalysis] = useState(false);
+
+  // State für den nächsten Update-Countdown (in Sekunden)
+  const [nextUpdate, setNextUpdate] = useState(0);
+  // Lokaler Countdown, der jede Sekunde runterzählt
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     // ✅ Google Analytics Tracking-Code dynamisch einfügen
@@ -69,6 +76,45 @@ function App() {
     if (num > 20 || num < -20) return "white";
     return "black"; // Standardmäßig dunkler Text auf helleren Farben
   };
+
+
+  // Preise abrufen und Countdown aus der API-Antwort extrahieren
+  const getPrices = async () => {
+    try {
+      const response = await fetch(`${API_URL}/prices`);
+      const data = await response.json();
+      setPricesData(data.prices);
+      // Setze den nächsten Update-Wert, der aus der API kommt
+      setNextUpdate(data.next_update_in_seconds);
+      // Aktualisiere den lokalen Countdown direkt
+      setCountdown(data.next_update_in_seconds);
+    } catch (error) {
+      console.error("Fehler beim Abrufen der Preise:", error);
+    }
+  };
+
+  // Initialer Abruf und automatisches Update alle 15 Minuten (900000 ms)
+  useEffect(() => {
+    getPrices();
+    const interval = setInterval(() => {
+      getPrices();
+    }, 900000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Countdown-Logik: Jede Sekunde wird der lokale Countdown heruntergezählt
+  useEffect(() => {
+    const countdownInterval = setInterval(() => {
+      setCountdown((prevCountdown) => (prevCountdown > 0 ? prevCountdown - 1 : 0));
+    }, 1000);
+    return () => clearInterval(countdownInterval);
+  }, []);
+
+  // Countdown in Minuten und Sekunden umrechnen
+  const minutes = Math.floor(countdown / 60);
+  const seconds = countdown % 60;
+
+
 
 
 
@@ -289,6 +335,10 @@ function App() {
   return (
     <div className="App">
       <h1>📈 Manager Investment Game</h1>
+      {/* Countdown-Anzeige */}
+      <div className="countdown">
+        Nächstes Update in {minutes} min {seconds} sec
+      </div>
       <div className="year-buttons">
         <button onClick={() => { setShowAnalysis(false); setSelectedYear("2025"); }}>Aktuelles Jahr</button>
         <button onClick={() => { setShowAnalysis(true); fetchPerformanceMatrix(); }}>
