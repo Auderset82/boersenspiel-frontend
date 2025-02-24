@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import "./App.css";
 import { Line } from "react-chartjs-2";
 import "chart.js/auto";
@@ -537,7 +537,7 @@ function App() {
                         <td>{stock.direction}</td>
                         <td>{stock.startPrice}</td>
                         {/* Hier ersetzt du stock.currentPrice durch den blinkenden Preis */}
-                        <BlinkingPrice price={prices[ticker].current_price} />
+                        <BlinkingPrice price={prices[stock.ticker].current_price} />
                         <td>{stock.performance}</td>
                         <td>{stock.currency}</td>
                         <td>{stock.startExchangeRate}</td>
